@@ -1,3 +1,3 @@
-package mojolly.swagger
+package mojolly.swagger.runtime
 
 trait ApiError

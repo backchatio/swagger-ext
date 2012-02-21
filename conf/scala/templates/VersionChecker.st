@@ -7,5 +7,5 @@ package $packageName$
  *
  */
 object VersionChecker {
-	val compatibleVersion = "$apiVersion$"
+	val CompatibleVersion = "$apiVersion$"
 }

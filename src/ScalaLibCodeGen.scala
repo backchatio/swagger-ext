@@ -1,11 +1,11 @@
 package mojolly.swagger
 
-import com.wordnik.swagger.codegen._
-import config.LanguageConfiguration
-import config.scala.ScalaDataTypeMappingProvider
-import util.FileUtil
-
+import java.util.{List => JList}
 import java.io.File
+import com.wordnik.swagger.codegen._
+import config.scala.ScalaDataTypeMappingProvider
+import config.{DataTypeMappingProvider2, LanguageConfiguration}
+import util.FileUtil
 
 object ScalaLibCodeGen extends App {
   val codeGen = new ScalaLibCodeGen(CodeGenConfig(args:_*))
@@ -32,7 +32,7 @@ object ScalaLibCodeGen extends App {
     "byte" -> "Byte",
     "java.util.Date" -> "Date")
 
-  class DataTypeMappingProvider extends ScalaDataTypeMappingProvider {
+  class DataTypeMappingProvider extends ScalaDataTypeMappingProvider with DataTypeMappingProvider2 {
     import collection.JavaConversions._
 
     override def isPrimitiveType(input: String): Boolean = primitiveObjectMap.contains(input)
@@ -41,9 +41,11 @@ object ScalaLibCodeGen extends App {
       if (primitiveObject) primitiveObjectMap(input) else ScalaDataTypeMappingProvider.primitiveValueMap(input)
     else nameGenerator applyClassNamingPolicy (input)
 
-    override def getListIncludes(): java.util.List[String] = List.empty[String]
-    override def getMapIncludes(): java.util.List[String] = List.empty[String]
-    override def getSetIncludes: java.util.List[String] = List.empty[String]
+    override def getListIncludes(): JList[String] = List.empty[String]
+    override def getMapIncludes(): JList[String] = List.empty[String]
+    override def getSetIncludes: JList[String] = List.empty[String]
+
+    def getArgumentDefinition(arg: MethodArgument) = (if (arg.isRequired) "%s: %s" else "%s: Option[%s] = None") format  (arg.getName, arg.getDataType)
   }
 }
 
