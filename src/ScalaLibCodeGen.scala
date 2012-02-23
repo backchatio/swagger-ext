@@ -5,7 +5,9 @@ import java.io.File
 import com.wordnik.swagger.codegen._
 import config.scala.ScalaDataTypeMappingProvider
 import config.{DataTypeMappingProvider2, LanguageConfiguration}
+import resource.Resource
 import util.FileUtil
+import org.antlr.stringtemplate.StringTemplateGroup
 
 object ScalaLibCodeGen extends App {
   val codeGen = new ScalaLibCodeGen(CodeGenConfig(args:_*))
@@ -68,5 +70,15 @@ class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator(co
     FileUtil clearFolder(langConfig.getResourceClassLocation())
     FileUtil.copyDirectory(new File(langConfig.getStructureLocation()), new File(config.libraryHome, "/src/main/scala/"));
     langConfig
+  }
+
+  override def generateMiscClasses(resources: java.util.List[Resource], templateGroup: StringTemplateGroup) {
+    val template = templateGroup.getInstanceOf("Defaults")
+    template.setAttribute("host", config.apiHostConfig.host)
+    template.setAttribute("port", config.apiHostConfig.port)
+    template.setAttribute("path", config.apiHostConfig.path)
+    template.setAttribute("packageName", getConfig.getApiPackageName);
+    val f = new File(languageConfig.getResourceClassLocation + "Defaults" + languageConfig.getClassFileExtension())
+    writeFile(f, template.toString(), "Defaults");
   }
 }

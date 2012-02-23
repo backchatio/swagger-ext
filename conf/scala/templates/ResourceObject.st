@@ -17,9 +17,12 @@ trait $resource$ { self: ApiResource =>
 
 $methods:{ method |
   def $method.name$($method.argumentDefinitions; separator=", "$): Either[ApiError, $if(method.hasResponseValue)$$method.returnValue$$else$Unit$endif$] =
-    submit[$if(method.hasResponseValue)$$method.returnValue$$else$Unit$endif$]("$method.methodType$", "$method.resourcePath$")
+    new ApiOperation[$if(method.hasResponseValue)$$method.returnValue$$else$Unit$endif$]("$method.methodType$", "$method.resourcePath$") {
+      def queryParams = Params($method.queryParameters:{ arg | "$arg.name$" -> $if(arg.required)$$arg.name$$else$$arg.name$.orNull$endif$ }; separator=", "$)
+      def headerParams = Map.empty
+    }
 
 }$
 }
 
-object $resource$ extends ApiResource with $resource$
+object $resource$ extends ApiResource with $resource$ with Defaults

@@ -8,7 +8,9 @@ object SwaggerExtBuild extends Build {
     scalaSource in Compile <<= baseDirectory { (base) => base / "src" },
     libraryDependencies ++= Seq(
       "wordnik" % "swagger-libs-gen" % "1.1-SHAPSHOT.121026" % "compile->build",
-      "net.liftweb" %% "lift-json" % "2.4"
+      "net.liftweb" %% "lift-json" % "2.4",
+      "com.ning" % "async-http-client" % "1.7.0",
+      "com.github.scala-incubator.io" %% "scala-io-core" % "0.3.0"
     )
   ))
 }
