@@ -3,6 +3,7 @@ package mojolly.swagger
 import java.util.{List => JList}
 import java.io.File
 import com.wordnik.swagger.codegen._
+import config.common.CamelCaseNamingPolicyProvider
 import config.scala.ScalaDataTypeMappingProvider
 import config.{DataTypeMappingProvider2, LanguageConfiguration}
 import resource.Resource
@@ -47,7 +48,11 @@ object ScalaLibCodeGen extends App {
     override def getMapIncludes(): JList[String] = List.empty[String]
     override def getSetIncludes: JList[String] = List.empty[String]
 
-    def getArgumentDefinition(arg: MethodArgument) = (if (arg.isRequired) "%s: %s" else "%s: Option[%s] = None") format  (arg.getName, arg.getDataType)
+    def getArgumentDefinition(method: ResourceMethod, arg: MethodArgument) = (if (method.getInputModel != null || arg.isRequired) "%s: %s" else "%s: Option[%s] = None") format  (arg.getName, arg.getDataType)
+  }
+
+  class NamingPolicyProvider extends CamelCaseNamingPolicyProvider {
+    override def createGetterMethodName(className: String, attributeName: String) = "%s.%s" format (className, applyMethodNamingPolicy(attributeName))
   }
 }
 
@@ -55,6 +60,7 @@ class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator(co
   import ScalaLibCodeGen._
 
   setDataTypeMappingProvider(new DataTypeMappingProvider)
+  setNameGenerator(new NamingPolicyProvider())
 
   override def initializeLangConfig(langConfig: LanguageConfiguration) = {
     langConfig setClassFileExtension(".scala")
@@ -77,6 +83,7 @@ class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator(co
     template.setAttribute("host", config.apiHostConfig.host)
     template.setAttribute("port", config.apiHostConfig.port)
     template.setAttribute("path", config.apiHostConfig.path)
+    template.setAttribute("token", config.apiHostConfig.authToken)
     template.setAttribute("packageName", getConfig.getApiPackageName);
     val f = new File(languageConfig.getResourceClassLocation + "Defaults" + languageConfig.getClassFileExtension())
     writeFile(f, template.toString(), "Defaults");

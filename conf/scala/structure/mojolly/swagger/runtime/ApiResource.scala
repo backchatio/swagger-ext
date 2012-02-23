@@ -9,29 +9,47 @@ import io.Codec
 import collection.JavaConversions._
 
 import com.ning.http.client._
+import util.control.Exception._
+import java.io.IOException
+import net.liftweb.json._
 
 trait ApiResource {
   private val clientConfig = new AsyncHttpClientConfig.Builder().setFollowRedirects(false).build()
   private val underlying = new AsyncHttpClient(clientConfig)
 
+  implicit val formats = DefaultFormats
+
   def host: String
   def port: Int
+  def apiPath: String
 
   def close() {
     underlying.close()
   }
 
   def submit[T](method: String, path: String,
-                queryParams: Map[String, String],
-                headers: Map[String, String]): Either[ApiError, T] = {
+                queryParams: Iterable[(String, String)],
+                headers: Map[String, String], authRequired: Boolean)(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
     val u = URI.create(path)
-    val reqUri = if (u.isAbsolute) u else new URI("http", null, host, port, u.getPath, u.getQuery, u.getFragment)
+    val reqUri = if (u.isAbsolute) u else new URI("http", null, host, port, apiPath + u.getPath, u.getQuery, u.getFragment)
     val req = (requestFactory(method)
       andThen (addHeaders(headers) _)
+      andThen (addAuth(auth, authRequired) _)
       andThen (addParameters(method, queryParams) _))(reqUri.toASCIIString)
-    val res = req.execute(async).get
-    println(res.body)
-    null
+    parseResponse(req.execute(async).get)
+  }
+
+  def parseResponse[T](resp: ClientResponse)(implicit mf: scala.reflect.Manifest[T]): Either[ApiError, T] = withResponse(resp) { json =>
+    println(json)
+    json.extract[T]
+  }
+
+  def withResponse[T](response: ClientResponse)(f: JValue => T): Either[ApiError, T] = {
+    (parseOpt(response.body) toRight (new JsonParseError())).right flatMap {
+      case JObject(JField("data", data) :: JField("errors", JArray(errors)) :: Nil) =>
+        (catching(classOf[IOException])).either {f(data)}.left map (_ => new IoError)
+      case _ => Left(new JsonParseError())
+    }
   }
 
   private def requestFactory(method: String): String ⇒ AsyncHttpClient#BoundRequestBuilder = {
@@ -56,6 +74,11 @@ trait ApiResource {
 
   private def addHeaders(headers: Map[String, String])(req: AsyncHttpClient#BoundRequestBuilder) = {
     headers foreach { case (k, v) => req.setHeader(k, v) }
+    req
+  }
+
+  private def addAuth(auth: ApiAuth, required: Boolean)(req: AsyncHttpClient#BoundRequestBuilder) = {
+    if (required) auth.populateSecurityInfo(req)
     req
   }
 
@@ -104,16 +127,21 @@ trait ApiResource {
     def statusText = status.line
   }
 
-  abstract class ApiOperation[T](val method: String, val pathPattern: String) {
-    def queryParams: Map[String, String]
+  abstract class ApiOperation[T](val method: String, val pathPattern: String)(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]) {
+    def queryParams: Iterable[(String, String)]
     def headerParams: Map[String, String]
     def path = pathPattern
   }
 
   object Params {
-    def apply(params: (String, String)*): Map[String,  String] = (params filterNot (_ == null)).toMap
+    case class Param(key: String, p: List[String])
+    object Param {
+      implicit def any2param(p: (String, Any)) = Param(p._1, (Option(p._2) map (_.toString)).toList)
+      implicit def list2param(p: (String, List[Any])) = Param(p._1, p._2 map (_.toString))
+    }
+    def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.key == null || p.p.isEmpty) flatMap (p => p.p map (s => (p.key, s))))
   }
 
-  implicit def apiOperation2result[T](op: ApiOperation[T]): Either[ApiError, T] =
-    submit(op.method, op.path, op.queryParams, op.headerParams)
+  implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth): Either[ApiError, T] =
+    submit(op.method, op.path, op.queryParams, op.headerParams, true)
 }

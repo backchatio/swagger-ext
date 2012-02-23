@@ -7,6 +7,5 @@ abstract class JavaLibraryCodeGenerator(config: CodeGenConfig) extends LibraryCo
   {
     def pkg(name: String) = "%s.%s" format(config.packageName, name)
     initialize(config.apiServerURL, config.apiKey, pkg("model"), pkg("api"), config.libraryHome + "/src/main/scala/" + (config.packageName replace(".", "/")), config.libraryHome)
-    setNameGenerator(new CamelCaseNamingPolicyProvider())
   }
 }
