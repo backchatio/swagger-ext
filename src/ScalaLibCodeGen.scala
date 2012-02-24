@@ -6,7 +6,7 @@ import com.wordnik.swagger.codegen._
 import config.common.CamelCaseNamingPolicyProvider
 import config.scala.ScalaDataTypeMappingProvider
 import config.{DataTypeMappingProvider2, LanguageConfiguration}
-import resource.Resource
+import resource.{EndpointOperation, Resource}
 import util.FileUtil
 import org.antlr.stringtemplate.StringTemplateGroup
 
@@ -61,6 +61,7 @@ class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator(co
 
   setDataTypeMappingProvider(new DataTypeMappingProvider)
   setNameGenerator(new NamingPolicyProvider())
+  EndpointOperation.setArgCountForInputModel(22)
 
   override def initializeLangConfig(langConfig: LanguageConfiguration) = {
     langConfig setClassFileExtension(".scala")

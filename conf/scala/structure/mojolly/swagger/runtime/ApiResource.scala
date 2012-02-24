@@ -40,14 +40,16 @@ trait ApiResource {
   }
 
   def parseResponse[T](resp: ClientResponse)(implicit mf: scala.reflect.Manifest[T]): Either[ApiError, T] = withResponse(resp) { json =>
-    println(json)
     json.extract[T]
   }
 
   def withResponse[T](response: ClientResponse)(f: JValue => T): Either[ApiError, T] = {
     (parseOpt(response.body) toRight (new JsonParseError())).right flatMap {
       case JObject(JField("data", data) :: JField("errors", JArray(errors)) :: Nil) =>
-        (catching(classOf[IOException])).either {f(data)}.left map (_ => new IoError)
+        if (errors.isEmpty)
+          (catching(classOf[IOException])).either { f(data) }.left map (_ => new IoError)
+        else
+          Left(new ApiError {} )
       case _ => Left(new JsonParseError())
     }
   }
@@ -127,7 +129,7 @@ trait ApiResource {
     def statusText = status.line
   }
 
-  abstract class ApiOperation[T](val method: String, val pathPattern: String)(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]) {
+  abstract class ApiOperation[T](val method: String, val pathPattern: String) {
     def queryParams: Iterable[(String, String)]
     def headerParams: Map[String, String]
     def path = pathPattern
@@ -142,6 +144,6 @@ trait ApiResource {
     def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.key == null || p.p.isEmpty) flatMap (p => p.p map (s => (p.key, s))))
   }
 
-  implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth): Either[ApiError, T] =
+  implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]): Either[ApiError, T] =
     submit(op.method, op.path, op.queryParams, op.headerParams, true)
 }
