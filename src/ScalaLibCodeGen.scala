@@ -30,10 +30,11 @@ object ScalaLibCodeGen extends App {
     "float" -> "Float",
     "Float" -> "Float",
     "java.lang.Float" -> "Float",
-    "Date" -> "Date",
-    "date" -> "Date",
+    "Date" -> "DateTime",
+    "date" -> "DateTime",
     "byte" -> "Byte",
-    "java.util.Date" -> "Date")
+    "java.util.Date" -> "DateTime",
+    "json" -> "JValue")
 
   class DataTypeMappingProvider extends ScalaDataTypeMappingProvider with DataTypeMappingProvider2 {
     import collection.JavaConversions._
@@ -47,6 +48,8 @@ object ScalaLibCodeGen extends App {
     override def getListIncludes(): JList[String] = List.empty[String]
     override def getMapIncludes(): JList[String] = List.empty[String]
     override def getSetIncludes: JList[String] = List.empty[String]
+    override def getDateIncludes: java.util.List[String] = List("org.joda.time.DateTime")
+    override def getJsonIncludes: java.util.List[String] = List("net.liftweb.json.JValue")
 
     def getArgumentDefinition(method: ResourceMethod, arg: MethodArgument) = (if (method.getInputModel != null || arg.isRequired) "%s: %s" else "%s: Option[%s] = None") format  (arg.getName, arg.getDataType)
   }

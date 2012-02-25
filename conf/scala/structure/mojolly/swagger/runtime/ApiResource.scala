@@ -3,6 +3,7 @@ package mojolly.swagger.runtime
 import java.net.URI
 import java.util.Locale.ENGLISH
 import java.nio.charset.Charset
+import java.io.IOException
 
 import scalax.io.{Codec => Codecx, Resource}
 import io.Codec
@@ -10,14 +11,34 @@ import collection.JavaConversions._
 
 import com.ning.http.client._
 import util.control.Exception._
-import java.io.IOException
 import net.liftweb.json._
+import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.{DateTime, DateTimeZone}
 
 trait ApiResource {
   private val clientConfig = new AsyncHttpClientConfig.Builder().setFollowRedirects(false).build()
   private val underlying = new AsyncHttpClient(clientConfig)
 
-  implicit val formats = DefaultFormats
+  object DateTimeSerializer extends Serializer[DateTime] {
+    private val Target = classOf[DateTime]
+    def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), DateTime] = {
+      case (TypeInfo(Target, _), json) =>
+        val opt = json match {
+          case json: JString =>
+            (catching(classOf[IllegalArgumentException])).opt(Iso8601Date.parseDateTime(json.s))
+          case value => None
+        }
+        opt getOrElse { throw new MappingException("Can't convert " + json + " to DateTime") }
+    }
+
+    def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
+      case d: DateTime => JString(d.toString(Iso8601Date))
+    }
+  }
+
+  implicit val formats = Serialization.formats(NoTypeHints) + DateTimeSerializer
+
+  lazy val Iso8601Date = ISODateTimeFormat.dateTime.withZone(DateTimeZone.UTC)
 
   def host: String
   def port: Int
@@ -132,6 +153,7 @@ trait ApiResource {
   abstract class ApiOperation[T](val method: String, val pathPattern: String) {
     def queryParams: Iterable[(String, String)]
     def headerParams: Map[String, String]
+    def pathParams: Map[String, String]
     def path = pathPattern
   }
 
@@ -144,6 +166,8 @@ trait ApiResource {
     def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.key == null || p.p.isEmpty) flatMap (p => p.p map (s => (p.key, s))))
   }
 
-  implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]): Either[ApiError, T] =
-    submit(op.method, op.path, op.queryParams, op.headerParams, true)
+  implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
+    val path = (op.path /: op.pathParams) { (path, param) => path.replace(("{%s}" format param._1), param._2) }
+    submit(op.method, path, op.queryParams, op.headerParams, true)
+  }
 }

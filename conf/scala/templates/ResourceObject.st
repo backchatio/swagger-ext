@@ -21,13 +21,17 @@ $methods:{ method |
 $if(!method.inputModel)$
       def queryParams = Params($method.queryParameters:{ arg | "$arg.name$" -> $if(arg.required)$$arg.name$$else$$arg.name$.orNull$endif$ }; separator=", "$)
       def headerParams = Map.empty
+      def pathParams = Map($method.pathParameters:{ arg | "$arg.name$" -> $arg.name$ }; separator=", "$)
+
 $endif$
 $if(method.inputModel)$
       def queryParams = Params($method.queryParameters:{ arg | "$arg.name$" -> $arg.methodNameFromModelClass$ }; separator=", "$)
       def headerParams = Map.empty
-$endif$
+      def pathParams = Map($method.pathParameters:{ arg | "$arg.name$" -> $arg.methodNameFromModelClass$ }; separator=", "$)
 
+$endif$
     }
+
 }$
 }
 
