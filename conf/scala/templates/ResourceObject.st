@@ -4,8 +4,8 @@ $imports:{ import |
 import $import$
 }$
 
+import net.liftweb.json.JValue
 import mojolly.swagger.runtime._
-
 import $modelPackageName$._
 
 /**

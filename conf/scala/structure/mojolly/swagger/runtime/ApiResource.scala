@@ -64,13 +64,18 @@ trait ApiResource {
     json.extract[T]
   }
 
-  def withResponse[T](response: ClientResponse)(f: JValue => T): Either[ApiError, T] = {
+  def withResponse[T](response: ClientResponse)(f: JValue => T)(implicit mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
     (parseOpt(response.body) toRight (new JsonParseError())).right flatMap {
       case JObject(JField("data", data) :: JField("errors", JArray(errors)) :: Nil) =>
         if (errors.isEmpty)
           (catching(classOf[IOException])).either { f(data) }.left map (_ => new IoError)
         else
-          Left(new ApiError {} )
+          Left(new ApiError {})
+      case JObject(JField("errors", JArray(errors)) :: Nil) if mf.erasure == classOf[Unit] =>
+        if (errors.isEmpty)
+          Right(().asInstanceOf[T])
+        else
+          Left(new ApiError {})
       case _ => Left(new JsonParseError())
     }
   }
@@ -161,7 +166,8 @@ trait ApiResource {
     case class Param(key: String, p: List[String])
     object Param {
       implicit def any2param(p: (String, Any)) = Param(p._1, (Option(p._2) map (_.toString)).toList)
-      implicit def list2param(p: (String, List[Any])) = Param(p._1, p._2 map (_.toString))
+      implicit def list2param(p: (String, List[Any])) =
+        Param(p._1, Option(p._2) map (l => l map (_.toString)) getOrElse Nil)
     }
     def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.key == null || p.p.isEmpty) flatMap (p => p.p map (s => (p.key, s))))
   }
