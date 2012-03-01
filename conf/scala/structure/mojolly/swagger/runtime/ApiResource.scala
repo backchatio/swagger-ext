@@ -163,13 +163,20 @@ trait ApiResource {
   }
 
   object Params {
-    case class Param(key: String, p: List[String])
-    object Param {
-      implicit def any2param(p: (String, Any)) = Param(p._1, (Option(p._2) map (_.toString)).toList)
-      implicit def list2param(p: (String, List[Any])) =
-        Param(p._1, Option(p._2) map (l => l map (_.toString)) getOrElse Nil)
+    trait Param {
+      def key: String
+      def value: List[String]
     }
-    def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.key == null || p.p.isEmpty) flatMap (p => p.p map (s => (p.key, s))))
+    case class CParam(key: String, value: List[String]) extends Param
+    object Param {
+      implicit def any2param[T](p: (String, T))(implicit mf: Manifest[T]): Param = {
+        val opt = if (p._2 != null && mf.erasure == classOf[Option[_]]) p._2.asInstanceOf[Option[_]] else Option(p._2)
+        CParam(p._1, (opt map (_.toString)).toList)
+      }
+      implicit def list2param(p: (String, List[Any])): Param =
+        CParam(p._1, Option(p._2) map (l => l map (_.toString)) getOrElse Nil)
+    }
+    def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.key == null || p.value.isEmpty) flatMap (p => p.value map (s => (p.key, s))))
   }
 
   implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {

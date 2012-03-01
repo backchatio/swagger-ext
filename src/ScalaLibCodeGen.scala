@@ -34,16 +34,19 @@ object ScalaLibCodeGen extends App {
     "date" -> "DateTime",
     "byte" -> "Byte",
     "java.util.Date" -> "DateTime",
-    "json" -> "JValue")
+    "json" -> "JValue",
+    "tuple" -> "(String, String)",
+    "Tuple" -> "(String, String)")
 
   class DataTypeMappingProvider extends ScalaDataTypeMappingProvider with DataTypeMappingProvider2 {
     import collection.JavaConversions._
 
     override def isPrimitiveType(input: String): Boolean = primitiveObjectMap.contains(input)
 
-    override def getClassName(input: String, primitiveObject: Boolean): String = if (isPrimitiveType(input))
-      if (primitiveObject) primitiveObjectMap(input) else ScalaDataTypeMappingProvider.primitiveValueMap(input)
-    else nameGenerator applyClassNamingPolicy (input)
+    override def getClassName(input: String, primitiveObject: Boolean): String = {
+      if (isPrimitiveType(input)) primitiveObjectMap(input)
+      else nameGenerator applyClassNamingPolicy (input)
+    }
 
     override def getListIncludes(): JList[String] = List.empty[String]
     override def getMapIncludes(): JList[String] = List.empty[String]
@@ -51,7 +54,12 @@ object ScalaLibCodeGen extends App {
     override def getDateIncludes: java.util.List[String] = List("org.joda.time.DateTime")
     override def getJsonIncludes: java.util.List[String] = List("net.liftweb.json.JValue")
 
-    def getArgumentDefinition(method: ResourceMethod, arg: MethodArgument) = (if (method.getInputModel != null || arg.isRequired) "%s: %s" else "%s: Option[%s] = None") format  (arg.getName, arg.getDataType)
+    def getArgumentDefinition(method: ResourceMethod, arg: MethodArgument) = {
+      val default = if (arg.getDataType == "Boolean") arg.getDefaultValue else "None"
+      val typ = if (arg.isRequired || arg.getDataType == "Boolean") arg.getDataType else "Option[%s]" format arg.getDataType
+      val fmt = if (!arg.isRequired) "%s: %s = " + (default) else "%s: %s"
+      fmt format (arg.getName, typ)
+    }
   }
 
   class NamingPolicyProvider extends CamelCaseNamingPolicyProvider {
