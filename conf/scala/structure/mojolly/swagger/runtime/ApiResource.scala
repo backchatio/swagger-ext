@@ -162,21 +162,37 @@ trait ApiResource {
     def path = pathPattern
   }
 
+  def value2params[T](key: String, value: T)(implicit mf: Manifest[T]): Iterable[(String, String)] = mf.erasure match {
+    case x if x == classOf[String] => List((key, value.toString))
+    case x if x == classOf[Boolean] => List((key, value.toString))
+    case x => object2params(key, value)
+  }
+
+  def object2params[T](key: String, value: T)(implicit mf: Manifest[T]): Iterable[(String, String)] = Nil
+
   object Params {
     trait Param {
-      def key: String
-      def value: List[String]
+      def values: Iterable[(String, String)]
     }
-    case class CParam(key: String, value: List[String]) extends Param
-    object Param {
-      implicit def any2param[T](p: (String, T))(implicit mf: Manifest[T]): Param = {
-        val opt = if (p._2 != null && mf.erasure == classOf[Option[_]]) p._2.asInstanceOf[Option[_]] else Option(p._2)
-        CParam(p._1, (opt map (_.toString)).toList)
+    case object EmptyParam extends Param {
+      def values: Iterable[(String, String)] = Nil
+    }
+    case class CParam(values: Iterable[(String, String)]) extends Param
+    case class LParam(params: List[Param]) extends Param {
+      def values: Iterable[(String, String)] = params flatMap (_.values)
+    }
+
+    implicit def any2param[T](p: (String, T))(implicit mf: Manifest[T]): Param = {
+      val opt: Option[T] = if (p._2 != null && mf.erasure == classOf[Option[_]]) p._2.asInstanceOf[Option[T]] else Option(p._2)
+      opt map (v => CParam(any2list[T](p._1, v))) getOrElse EmptyParam
+    }
+    implicit def list2param[T](p: (String, List[T]))(implicit mf: Manifest[T]): Param = {
+      if (p._2 == null) EmptyParam else {
+        LParam(p._2 map (v => any2param[T](p._1, v)))
       }
-      implicit def list2param(p: (String, List[Any])): Param =
-        CParam(p._1, Option(p._2) map (l => l map (_.toString)) getOrElse Nil)
     }
-    def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.key == null || p.value.isEmpty) flatMap (p => p.value map (s => (p.key, s))))
+
+    def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.values.isEmpty) flatMap (p => p.values))
   }
 
   implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
