@@ -14,6 +14,7 @@ import util.control.Exception._
 import net.liftweb.json._
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
+import java.lang.reflect.Modifier
 
 trait ApiResource {
   private val clientConfig = new AsyncHttpClientConfig.Builder().setFollowRedirects(false).build()
@@ -69,8 +70,9 @@ trait ApiResource {
       case JObject(JField("data", data) :: JField("errors", JArray(errors)) :: Nil) =>
         if (errors.isEmpty)
           (catching(classOf[IOException])).either { f(data) }.left map (_ => new IoError)
-        else
+        else {
           Left(new ApiError {})
+        }
       case JObject(JField("errors", JArray(errors)) :: Nil) if mf.erasure == classOf[Unit] =>
         if (errors.isEmpty)
           Right(().asInstanceOf[T])
@@ -165,10 +167,19 @@ trait ApiResource {
   def value2params[T](key: String, value: T)(implicit mf: Manifest[T]): Iterable[(String, String)] = mf.erasure match {
     case x if x == classOf[String] => List((key, value.toString))
     case x if x == classOf[Boolean] => List((key, value.toString))
+    case x if classOf[Product].isAssignableFrom(x) => product2params(key, value.asInstanceOf[Product])
     case x => object2params(key, value)
   }
 
   def object2params[T](key: String, value: T)(implicit mf: Manifest[T]): Iterable[(String, String)] = Nil
+
+  def product2params[T <: Product](key: String, value: T): Iterable[(String, String)] = {
+    val r = value.getClass.getDeclaredFields.toList filter (f => (f.getModifiers & Modifier.PRIVATE) != 0) map (_.getName)
+    val f = value.productIterator.toList
+    (r, f).zipped.toList collect {
+      case (k, v) if v != null => (k, v.toString)
+    }
+  }
 
   object Params {
     trait Param {
@@ -182,10 +193,18 @@ trait ApiResource {
       def values: Iterable[(String, String)] = params flatMap (_.values)
     }
 
-    implicit def any2param[T](p: (String, T))(implicit mf: Manifest[T]): Param = {
-      val opt: Option[T] = if (p._2 != null && mf.erasure == classOf[Option[_]]) p._2.asInstanceOf[Option[T]] else Option(p._2)
-      opt map (v => CParam(any2list[T](p._1, v))) getOrElse EmptyParam
+    implicit def option2param[T](p: (String, Option[T]))(implicit mf: Manifest[T]): Param = {
+      p._2 map (v => {
+        CParam(value2params[T](p._1, v))
+      }) getOrElse EmptyParam
     }
+
+    implicit def any2param[T](p: (String, T))(implicit mf: Manifest[T]): Param = {
+      Option(p._2) map (v => {
+        CParam(value2params[T](p._1, v))
+      }) getOrElse EmptyParam
+    }
+
     implicit def list2param[T](p: (String, List[T]))(implicit mf: Manifest[T]): Param = {
       if (p._2 == null) EmptyParam else {
         LParam(p._2 map (v => any2param[T](p._1, v)))
