@@ -38,7 +38,7 @@ object ScalaLibCodeGen extends App {
     "tuple" -> "(String, String)",
     "Tuple" -> "(String, String)")
 
-  class DataTypeMappingProvider extends ScalaDataTypeMappingProvider with DataTypeMappingProvider2 {
+  class DataTypeMappingProvider extends ScalaDataTypeMappingProvider with DataTypeMappingProvider2 with mojolly.inflector.InflectorImports {
     import collection.JavaConversions._
 
     override def isPrimitiveType(input: String): Boolean = primitiveObjectMap.contains(input)
@@ -58,7 +58,8 @@ object ScalaLibCodeGen extends App {
       val default = if (arg.getDataType == "Boolean") arg.getDefaultValue else "None"
       val typ = if (arg.isRequired || arg.getDataType == "Boolean") arg.getDataType else "Option[%s]" format arg.getDataType
       val fmt = if (!arg.isRequired) "%s: %s = " + (default) else "%s: %s"
-      fmt format (arg.getName, typ)
+      val name = arg.getName.camelize
+      fmt format (name, typ)
     }
   }
 

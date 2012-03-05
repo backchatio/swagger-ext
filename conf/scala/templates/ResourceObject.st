@@ -19,9 +19,9 @@ $methods:{ method |
   def $method.name$($method.argumentDefinitions; separator=", "$)(implicit auth: ApiAuth): Either[ApiError, $if(method.hasResponseValue)$$method.returnValue$$else$Unit$endif$] =
     new ApiOperation[$if(method.hasResponseValue)$$method.returnValue$$else$Unit$endif$]("$method.methodType$", "$method.resourcePath$") {
 $if(!method.inputModel)$
-      def queryParams = Params($method.queryParameters:{ arg | "$arg.name$" -> $arg.name$ }; separator=", "$)
+      def queryParams = Params($method.queryParameters:{ arg | "$arg.name$" -> $arg.name;format="camelcase"$ }; separator=", "$)
       def headerParams = Map.empty
-      def pathParams = Map($method.pathParameters:{ arg | "$arg.name$" -> $arg.name$ }; separator=", "$)
+      def pathParams = Map($method.pathParameters:{ arg | "$arg.name$" -> $arg.name;format="camelcase"$ }; separator=", "$)
 
 $endif$
 $if(method.inputModel)$

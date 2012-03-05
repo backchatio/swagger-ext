@@ -15,6 +15,7 @@ import net.liftweb.json._
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.{DateTime, DateTimeZone}
 import java.lang.reflect.Modifier
+import mojolly.inflector.InflectorImports._
 
 trait ApiResource {
   private val clientConfig = new AsyncHttpClientConfig.Builder().setFollowRedirects(false).build()
@@ -66,7 +67,8 @@ trait ApiResource {
   }
 
   def withResponse[T](response: ClientResponse)(f: JValue => T)(implicit mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
-    (parseOpt(response.body) toRight (new JsonParseError())).right flatMap {
+    val camelized = ((parseOpt(response.body) map (j => j.camelizeKeys)))
+    (camelized toRight (new JsonParseError())).right flatMap {
       case JObject(JField("data", data) :: JField("errors", JArray(errors)) :: Nil) =>
         if (errors.isEmpty)
           (catching(classOf[IOException])).either { f(data) }.left map (_ => new IoError)
@@ -177,7 +179,7 @@ trait ApiResource {
     val r = value.getClass.getDeclaredFields.toList filter (f => (f.getModifiers & Modifier.PRIVATE) != 0) map (_.getName)
     val f = value.productIterator.toList
     (r, f).zipped.toList collect {
-      case (k, v) if v != null => (k, v.toString)
+      case (k, v) if v != null => (k.underscore, v.toString)
     }
   }
 
@@ -218,4 +220,20 @@ trait ApiResource {
     val path = (op.path /: op.pathParams) { (path, param) => path.replace(("{%s}" format param._1), param._2) }
     submit(op.method, path, op.queryParams, op.headerParams, true)
   }
+
+  object FormattedJson {
+    def rewriteJsonAST(json: JValue, camelize: Boolean): JValue = {
+      json transform {
+        case JField(nm, x) if !nm.startsWith("_") ⇒ JField(if (camelize) nm.camelize else nm.underscore, x)
+        case x                                    ⇒ x
+      }
+    }
+  }
+
+  class BackchatJValue(jvalue: JValue) {
+    def camelizeKeys = FormattedJson.rewriteJsonAST(jvalue, true)
+    def snakizeKeys = FormattedJson.rewriteJsonAST(jvalue, false)
+  }
+
+  implicit def jvalue2BackchatJValue(jvalue: JValue) = new BackchatJValue(jvalue)
 }

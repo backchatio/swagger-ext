@@ -13,13 +13,13 @@ import $import$
 case class $className$(
 $fields:{ field |
 $if(field.fieldDefinition.hasListResponse)$
-  $field.fieldDefinition.name$: $field.fieldDefinition.returnType$$elseif(field.fieldDefinition.hasMapResponse)$
-  $field.fieldDefinition.name$: $field.fieldDefinition.returnType$
+  $field.fieldDefinition.name;format="camelcase"$: $field.fieldDefinition.returnType$$elseif(field.fieldDefinition.hasMapResponse)$
+  $field.fieldDefinition.name;format="camelcase"$: $field.fieldDefinition.returnType$
 $else$
 $if(field.required)$
-  $field.fieldDefinition.name$: $field.fieldDefinition.returnType$
+  $field.fieldDefinition.name;format="camelcase"$: $field.fieldDefinition.returnType$
 $else$
-  $field.fieldDefinition.name$: Option[$field.fieldDefinition.returnType$]
+  $field.fieldDefinition.name;format="camelcase"$: Option[$field.fieldDefinition.returnType$]
 $endif$
 $endif$
 };separator=",\n"$
