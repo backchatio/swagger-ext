@@ -59,11 +59,16 @@ trait ApiResource {
       andThen (addHeaders(headers) _)
       andThen (addAuth(auth, authRequired) _)
       andThen (addParameters(method, queryParams) _))(reqUri.toASCIIString)
-    parseResponse(req.execute(async).get)
+    parseResponse(method, req.execute(async).get)
   }
 
-  def parseResponse[T](resp: ClientResponse)(implicit mf: scala.reflect.Manifest[T]): Either[ApiError, T] = withResponse(resp) { json =>
-    json.extract[T]
+  def parseResponse[T](method: String, resp: ClientResponse)(implicit mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
+    if (method == "DELETE" && resp.statusCode == 204)
+      Right(().asInstanceOf[T])
+    else
+      withResponse(resp) { json =>
+        json.extract[T]
+      }
   }
 
   def withResponse[T](response: ClientResponse)(f: JValue => T)(implicit mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
