@@ -1,4 +1,4 @@
-Code generators for Swagger compliant api's.
+Code generators for Swagger compliant API's.
 
 ## Requirements
 
@@ -14,4 +14,8 @@ Install swagger-codegen fork:
 
 ### Scala
 
-    sbt 'run-main mojolly.swagger.ScalaLibCodeGen http://localhost:8080/1/swagger/ <api_key> foobar.client ../foobar-scala-client api.foobar.com 80 /1 Foobar'
+    sbt 'run-main mojolly.swagger.ScalaLibCodeGen http://localhost:8080/1/swagger/ apikey backchat.client ../backchat-scala-client localhost 8080 /1 Backchat'
+
+### Python
+
+    sbt 'run-main mojolly.swagger.PythonLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-python-client localhost 8080 /1 Backchat'

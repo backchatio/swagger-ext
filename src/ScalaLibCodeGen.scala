@@ -82,12 +82,12 @@ class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator(co
     langConfig setExceptionPackageName("com.wordnik.swagger.exception")
     langConfig setAnnotationPackageName("com.wordnik.swagger.annotations")
 
-    //create ouput directories
     FileUtil createOutputDirectories(langConfig.getModelClassLocation(), langConfig.getClassFileExtension())
     FileUtil createOutputDirectories(langConfig.getResourceClassLocation(), langConfig.getClassFileExtension())
     FileUtil clearFolder(langConfig.getModelClassLocation())
     FileUtil clearFolder(langConfig.getResourceClassLocation())
-    FileUtil.copyDirectory(new File(langConfig.getStructureLocation()), new File(config.libraryHome, "/src/main/scala/"));
+    FileUtil.copyDirectory(new File(langConfig.getStructureLocation()), new File(config.libraryHome, "/src/main/scala/"))
+
     langConfig
   }
 
