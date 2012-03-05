@@ -55,8 +55,12 @@ object ScalaLibCodeGen extends App {
     override def getJsonIncludes: java.util.List[String] = List("net.liftweb.json.JValue")
 
     def getArgumentDefinition(method: ResourceMethod, arg: MethodArgument) = {
-      val default = if (arg.getDataType == "Boolean") arg.getDefaultValue else "None"
-      val typ = if (arg.isRequired || arg.getDataType == "Boolean") arg.getDataType else "Option[%s]" format arg.getDataType
+      val default = arg.getDataType match {
+        case "Boolean" => arg.getDefaultValue
+        case x if x.startsWith("List") => "Nil"
+        case _ => "None"
+      }
+      val typ = if (arg.isRequired || arg.getDataType == "Boolean" || arg.getDataType.startsWith("List")) arg.getDataType else "Option[%s]" format arg.getDataType
       val fmt = if (!arg.isRequired) "%s: %s = " + (default) else "%s: %s"
       val name = arg.getName.camelize
       fmt format (name, typ)
