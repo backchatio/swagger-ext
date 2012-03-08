@@ -8,6 +8,19 @@ class $resource$:
 
 $methods:{ method |
     def $method.name$(self, $method.argumentDefinitions; separator=", "$):
+        """$method.title$
+    $if(method.description)$
+        $method.description$
+    $endif$
+        Args:
+            $method.arguments:{ argument |$argument.name$ -- ($argument.dataType$) $argument.description$
+}$
+    $if(!method.responseVoid)$
+        Return: a $method.returnClassName$
+    $else$
+        Return: nothing
+    $endif$"""
+
         return self.client.submit("$method.methodType$", "$method.resourcePath$",
             query_params = [$method.queryParameters:{ arg | ('$arg.name$', $arg.name;format="underscore"$) }; separator=", "$],
             header_params = {},
