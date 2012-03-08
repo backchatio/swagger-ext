@@ -1,21 +1,37 @@
 package mojolly.swagger
 
 import java.io.File
+import java.util.{List => JList}
+import collection.JavaConversions._
 import com.wordnik.swagger.codegen._
 import config._
 import common._
 import python._
 import resource._
 import util.FileUtil
-import org.antlr.stringtemplate._
 
 object PythonLibCodeGen extends App {
   val codeGen = new PythonLibCodeGen(CodeGenConfig(args:_*))
   codeGen generateCode()
 
-  class DataTypeMappingProvider extends PythonDataTypeMappingProvider
+  class DataTypeMappingProvider extends PythonDataTypeMappingProvider with DataTypeMappingProvider2 with mojolly.inflector.InflectorImports {
+    override def getJsonIncludes: JList[String] = List()
 
-  class NamingPolicyProvider extends CamelCaseNamingPolicyProvider
+    def getArgumentDefinition(method: ResourceMethod, arg: MethodArgument) = {
+      val default = arg.getDataType match {
+        case "bool" => Option(arg.getDefaultValue) map (_.capitalize) getOrElse "False"
+        case x if x.startsWith("list") => "[]"
+        case _ => "None"
+      }
+      val fmt = if (!arg.isRequired) "%s = " + (default) else "%s"
+      fmt format arg.getName.underscore
+    }
+  }
+
+  class NamingPolicyProvider extends CamelCaseNamingPolicyProvider with mojolly.inflector.InflectorImports {
+    override def applyMethodNamingPolicy(name: String) = name.underscore
+    override def getMethodName(endpoint: String, suggested: String) = applyMethodNamingPolicy(suggested)
+  }
 
   class PythonCodeGenConfig(config: CodeGenConfig) {
     def resourceClassLocation = new File(classOutputDir, "api")
@@ -53,6 +69,17 @@ class PythonLibCodeGen(config: CodeGenConfig) extends LibraryCodeGenerator {
     val newInitFile = new File(config.modelClassLocation + "__init__.py")
     initFile renameTo newInitFile
 
+    touchInitFiles(langConfig)
+
     langConfig
+  }
+
+  def touchInitFiles(langConfig: LanguageConfiguration) = {
+    var f: File = new File(config.libraryHome)
+    def touch = new File(f,  "__init__.py").createNewFile
+    for (dir <- config.packageName.split("/")) {
+      f = new File(f, dir)
+      touch
+    }
   }
 }
