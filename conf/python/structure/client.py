@@ -2,6 +2,7 @@ import urllib
 import urllib2
 import httplib
 import json
+from .model import Model
 
 class APIClient:
 
@@ -59,16 +60,41 @@ class APIClient:
             if method == 'PUT':
                 request.get_method = lambda: method
 
-        code = None
+        response = None
         try:
             response = urllib2.urlopen(request)
-            code = response.code
         except urllib2.HTTPError, e:
-            code = e.code
             response = e
-        try:
-            data = json.loads(response.read())
-        except ValueError:
-            data = None
 
-        return (code, data)                
+        return Response(response)
+
+class Response:
+
+    def __init__(self, response):
+        self.code = response.code
+        try:
+            self.content = json.loads(response.read())
+        except ValueError:
+            self.content = None
+
+    def errors(self):
+        if self.content.has_key('errors'):
+            return self.content['errors']
+        else:
+            return []
+
+    def get_data(self):
+        d = None
+        if self.content.has_key('data'):
+            d = self.content['data']
+        if d != None:
+            typ = type(d)
+            if typ in [str, int, bool, float]:
+                return d
+            elif typ == list:
+                return map(lambda x: Model(x), d)
+            else:
+                return Model(d)
+        return d
+
+    data = property(get_data)

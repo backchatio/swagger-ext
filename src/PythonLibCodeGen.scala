@@ -9,6 +9,7 @@ import common._
 import python._
 import resource._
 import util.FileUtil
+import org.antlr.stringtemplate._
 
 object PythonLibCodeGen extends App {
   val codeGen = new PythonLibCodeGen(CodeGenConfig(args:_*))
@@ -40,6 +41,8 @@ object PythonLibCodeGen extends App {
   }
 
   implicit def config2python(config: CodeGenConfig) = new PythonCodeGenConfig(config)
+
+  val logger = org.slf4j.LoggerFactory.getLogger(classOf[PythonLibCodeGen])
 }
 
 class PythonLibCodeGen(config: CodeGenConfig) extends LibraryCodeGenerator {
@@ -59,27 +62,41 @@ class PythonLibCodeGen(config: CodeGenConfig) extends LibraryCodeGenerator {
     langConfig setExceptionPackageName("com.wordnik.swagger.exception")
     langConfig setAnnotationPackageName("com.wordnik.swagger.annotations")
 
-    FileUtil createOutputDirectories(langConfig.getModelClassLocation(), langConfig.getClassFileExtension())
     FileUtil createOutputDirectories(langConfig.getResourceClassLocation(), langConfig.getClassFileExtension())
-    FileUtil clearFolder(langConfig.getModelClassLocation())
     FileUtil clearFolder(langConfig.getResourceClassLocation())
     FileUtil.copyDirectory(new File(langConfig.getStructureLocation()), config.resourceClassLocation)
-
-    val initFile = new File(config.resourceClassLocation + "__init__.py")
-    val newInitFile = new File(config.modelClassLocation + "__init__.py")
-    initFile renameTo newInitFile
 
     touchInitFiles(langConfig)
 
     langConfig
   }
 
+  override def generateModelClasses(resources: JList[Resource], templateGroup: StringTemplateGroup) {
+    val models = new collection.mutable.ListBuffer[Model]()
+    for (resource <- (resources)) {
+      for (model <- resource.getModels) {
+        if (!models.exists(_.getName == model.getName) && !this.getCodeGenRulesProvider.isModelIgnored(model.getName)) {
+          if (null == model.getFields || model.getFields.size == 0)
+            logger.warn("Model " + model.getName + " doesn't have any properties")
+          else
+            models += model
+        }
+      }
+    }
+
+    var template: StringTemplate = templateGroup.getInstanceOf("Init")
+    template.setAttribute("models", models.toArray)
+    var aFile: File = new File(languageConfig.getResourceClassLocation, "__init__" + languageConfig.getClassFileExtension)
+    writeFile(aFile, template.toString, "__init__")
+  }
+
+  def touchInit(f: File) = new File(f,  "__init__.py").createNewFile
+
   def touchInitFiles(langConfig: LanguageConfiguration) = {
     var f: File = new File(config.libraryHome)
-    def touch = new File(f,  "__init__.py").createNewFile
     for (dir <- config.packageName.split("/")) {
       f = new File(f, dir)
-      touch
+      touchInit(f)
     }
   }
 }

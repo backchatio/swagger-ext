@@ -101,8 +101,8 @@ class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator(co
     template.setAttribute("port", config.apiHostConfig.port)
     template.setAttribute("path", config.apiHostConfig.path)
     template.setAttribute("token", config.apiHostConfig.authToken)
-    template.setAttribute("packageName", getConfig.getApiPackageName);
+    template.setAttribute("packageName", getConfig.getApiPackageName)
     val f = new File(languageConfig.getResourceClassLocation + "Defaults" + languageConfig.getClassFileExtension())
-    writeFile(f, template.toString(), "Defaults");
+    writeFile(f, template.toString(), "Defaults")
   }
 }
