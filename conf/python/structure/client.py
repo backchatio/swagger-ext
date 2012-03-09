@@ -2,7 +2,7 @@ import urllib
 import urllib2
 import httplib
 import json
-from .model import Model
+from .model import Model, to_data
 
 class APIClient:
 
@@ -77,7 +77,10 @@ class Response:
         except ValueError:
             self.content = None
 
-    def errors(self):
+    def has_errors(self):
+        return len(get_errors()) > 0
+
+    def get_errors(self):
         if self.content.has_key('errors'):
             return self.content['errors']
         else:
@@ -88,13 +91,8 @@ class Response:
         if self.content.has_key('data'):
             d = self.content['data']
         if d != None:
-            typ = type(d)
-            if typ in [str, int, bool, float]:
-                return d
-            elif typ == list:
-                return map(lambda x: Model(x), d)
-            else:
-                return Model(d)
+            return to_data(d)
         return d
 
     data = property(get_data)
+    errors = property(get_errors)

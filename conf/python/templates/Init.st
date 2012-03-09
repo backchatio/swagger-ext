@@ -9,6 +9,6 @@ $model.name$
 
     	Properties:
     		$model.fields:{ field | $field.name$ -- ($field.paramType$) $field.description$
-	}$
+}$
 }$
 """

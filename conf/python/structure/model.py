@@ -5,7 +5,8 @@ class Model(dict):
 
 	def __getitem__(self, key):
 		if dict.has_key(self,key): 
-			return dict.__getitem__(self, key)
+			val  = dict.__getitem__(self, key)
+			return to_data(val)
 		else:
 			return None
 
@@ -17,3 +18,12 @@ class Model(dict):
 
 	def __setattr__(self, name, val):
 		return self.__setitem__(name, val)
+
+def to_data(data):
+	typ = type(data)
+	if typ in [unicode, str, int, bool, float]:
+		return data
+	elif typ == list:
+		return map(lambda x: to_data(x), data)
+	else:
+		return Model(data)
