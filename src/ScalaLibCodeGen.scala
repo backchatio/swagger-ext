@@ -2,6 +2,7 @@ package mojolly.swagger
 
 import java.util.{List => JList}
 import java.io.File
+import collection.JavaConversions._
 import com.wordnik.swagger.codegen._
 import config.common.CamelCaseNamingPolicyProvider
 import config.scala.ScalaDataTypeMappingProvider
@@ -102,6 +103,7 @@ class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator(co
     template.setAttribute("path", config.apiHostConfig.path)
     template.setAttribute("token", config.apiHostConfig.authToken)
     template.setAttribute("packageName", getConfig.getApiPackageName)
+    template.setAttribute("parents", (resources map (_.generateClassName(nameGenerator))).toArray)
     val f = new File(languageConfig.getResourceClassLocation + "Defaults" + languageConfig.getClassFileExtension())
     writeFile(f, template.toString(), "Defaults")
   }

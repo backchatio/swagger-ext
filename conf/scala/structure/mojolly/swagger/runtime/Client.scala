@@ -17,7 +17,82 @@ import org.joda.time.{DateTime, DateTimeZone}
 import java.lang.reflect.Modifier
 import mojolly.inflector.InflectorImports._
 
-trait ApiResource {
+trait ApiAuth {
+  def headers: Map[String, String]
+}
+
+trait ApiError
+
+class JsonParseError() extends ApiError
+class IoError() extends ApiError
+
+trait Api {
+  protected def client: ApiClient
+
+  abstract class ApiOperation[T](val method: String, val pathPattern: String) {
+    def queryParams: Iterable[(String, String)]
+    def headerParams: Map[String, String]
+    def pathParams: Map[String, String]
+    def path = pathPattern
+  }
+
+  def value2params[T](key: String, value: T)(implicit mf: Manifest[T]): Iterable[(String, String)] = mf.erasure match {
+    case x if x == classOf[String] => List((key, value.toString))
+    case x if x == classOf[Boolean] => List((key, value.toString))
+    case x if classOf[Product].isAssignableFrom(x) => product2params(key, value.asInstanceOf[Product])
+    case x => object2params(key, value)
+  }
+
+  def object2params[T](key: String, value: T)(implicit mf: Manifest[T]): Iterable[(String, String)] = Nil
+
+  def product2params[T <: Product](key: String, value: T): Iterable[(String, String)] = {
+    val r = value.getClass.getDeclaredFields.toList filter (f => (f.getModifiers & Modifier.PRIVATE) != 0) map (_.getName)
+    val f = value.productIterator.toList
+    (r, f).zipped.toList collect {
+      case (k, v) if v != null => (k.underscore, v.toString)
+    }
+  }
+
+  object Params {
+    trait Param {
+      def values: Iterable[(String, String)]
+    }
+    case object EmptyParam extends Param {
+      def values: Iterable[(String, String)] = Nil
+    }
+    case class CParam(values: Iterable[(String, String)]) extends Param
+    case class LParam(params: List[Param]) extends Param {
+      def values: Iterable[(String, String)] = params flatMap (_.values)
+    }
+
+    implicit def option2param[T](p: (String, Option[T]))(implicit mf: Manifest[T]): Param = {
+      p._2 map (v => {
+        CParam(value2params[T](p._1, v))
+      }) getOrElse EmptyParam
+    }
+
+    implicit def any2param[T](p: (String, T))(implicit mf: Manifest[T]): Param = {
+      Option(p._2) map (v => {
+        CParam(value2params[T](p._1, v))
+      }) getOrElse EmptyParam
+    }
+
+    implicit def list2param[T](p: (String, List[T]))(implicit mf: Manifest[T]): Param = {
+      if (p._2 == null) EmptyParam else {
+        LParam(p._2 map (v => any2param[T](p._1, v)))
+      }
+    }
+
+    def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.values.isEmpty) flatMap (p => p.values))
+  }
+
+  implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
+    val path = (op.path /: op.pathParams) { (path, param) => path.replace(("{%s}" format param._1), param._2) }
+    client.submit(op.method, path, op.queryParams, op.headerParams, true)
+  }
+}
+
+trait ApiClient {
   private val clientConfig = new AsyncHttpClientConfig.Builder().setFollowRedirects(false).build()
   private val underlying = new AsyncHttpClient(clientConfig)
 
@@ -49,6 +124,13 @@ trait ApiResource {
   def close() {
     underlying.close()
   }
+
+  class RichJValue(jvalue: JValue) {
+    def camelizeKeys = FormattedJson.rewriteJsonAST(jvalue, true)
+    def snakizeKeys = FormattedJson.rewriteJsonAST(jvalue, false)
+  }
+
+  implicit def richValue(jvalue: JValue) = new RichJValue(jvalue)
 
   def submit[T](method: String, path: String,
                 queryParams: Iterable[(String, String)],
@@ -115,7 +197,7 @@ trait ApiResource {
   }
 
   private def addAuth(auth: ApiAuth, required: Boolean)(req: AsyncHttpClient#BoundRequestBuilder) = {
-    if (required) auth.populateSecurityInfo(req)
+    if (required) auth.headers foreach { case (k, v) => req.setHeader(k, v) }
     req
   }
 
@@ -164,68 +246,6 @@ trait ApiResource {
     def statusText = status.line
   }
 
-  abstract class ApiOperation[T](val method: String, val pathPattern: String) {
-    def queryParams: Iterable[(String, String)]
-    def headerParams: Map[String, String]
-    def pathParams: Map[String, String]
-    def path = pathPattern
-  }
-
-  def value2params[T](key: String, value: T)(implicit mf: Manifest[T]): Iterable[(String, String)] = mf.erasure match {
-    case x if x == classOf[String] => List((key, value.toString))
-    case x if x == classOf[Boolean] => List((key, value.toString))
-    case x if classOf[Product].isAssignableFrom(x) => product2params(key, value.asInstanceOf[Product])
-    case x => object2params(key, value)
-  }
-
-  def object2params[T](key: String, value: T)(implicit mf: Manifest[T]): Iterable[(String, String)] = Nil
-
-  def product2params[T <: Product](key: String, value: T): Iterable[(String, String)] = {
-    val r = value.getClass.getDeclaredFields.toList filter (f => (f.getModifiers & Modifier.PRIVATE) != 0) map (_.getName)
-    val f = value.productIterator.toList
-    (r, f).zipped.toList collect {
-      case (k, v) if v != null => (k.underscore, v.toString)
-    }
-  }
-
-  object Params {
-    trait Param {
-      def values: Iterable[(String, String)]
-    }
-    case object EmptyParam extends Param {
-      def values: Iterable[(String, String)] = Nil
-    }
-    case class CParam(values: Iterable[(String, String)]) extends Param
-    case class LParam(params: List[Param]) extends Param {
-      def values: Iterable[(String, String)] = params flatMap (_.values)
-    }
-
-    implicit def option2param[T](p: (String, Option[T]))(implicit mf: Manifest[T]): Param = {
-      p._2 map (v => {
-        CParam(value2params[T](p._1, v))
-      }) getOrElse EmptyParam
-    }
-
-    implicit def any2param[T](p: (String, T))(implicit mf: Manifest[T]): Param = {
-      Option(p._2) map (v => {
-        CParam(value2params[T](p._1, v))
-      }) getOrElse EmptyParam
-    }
-
-    implicit def list2param[T](p: (String, List[T]))(implicit mf: Manifest[T]): Param = {
-      if (p._2 == null) EmptyParam else {
-        LParam(p._2 map (v => any2param[T](p._1, v)))
-      }
-    }
-
-    def apply(params: Param*): Iterable[(String,  String)] = (params filterNot (p => p.values.isEmpty) flatMap (p => p.values))
-  }
-
-  implicit def apiOperation2result[T](op: ApiOperation[T])(implicit auth: ApiAuth, mf: scala.reflect.Manifest[T]): Either[ApiError, T] = {
-    val path = (op.path /: op.pathParams) { (path, param) => path.replace(("{%s}" format param._1), param._2) }
-    submit(op.method, path, op.queryParams, op.headerParams, true)
-  }
-
   object FormattedJson {
     def rewriteJsonAST(json: JValue, camelize: Boolean): JValue = {
       json transform {
@@ -234,11 +254,4 @@ trait ApiResource {
       }
     }
   }
-
-  class BackchatJValue(jvalue: JValue) {
-    def camelizeKeys = FormattedJson.rewriteJsonAST(jvalue, true)
-    def snakizeKeys = FormattedJson.rewriteJsonAST(jvalue, false)
-  }
-
-  implicit def jvalue2BackchatJValue(jvalue: JValue) = new BackchatJValue(jvalue)
 }
