@@ -12,6 +12,10 @@ Install swagger-codegen fork:
 
 ## Generators
 
+### Java
+
+    sbt 'run-main mojolly.swagger.JavaLibCodeGen http://localhost:8080/1/swagger/ apikey backchat.client ../backchat-java-client api.backchat.io 80 /1 Backchat'
+
 ### Scala
 
     sbt 'run-main mojolly.swagger.ScalaLibCodeGen http://localhost:8080/1/swagger/ apikey backchat.client ../backchat-scala-client api.backchat.io 80 /1 Backchat'

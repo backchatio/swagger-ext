@@ -73,7 +73,7 @@ object ScalaLibCodeGen extends App {
   }
 }
 
-class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator(config) {
+class ScalaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator("scala", config) {
   import ScalaLibCodeGen._
 
   setDataTypeMappingProvider(new DataTypeMappingProvider)
