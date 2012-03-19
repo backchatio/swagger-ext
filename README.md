@@ -23,3 +23,7 @@ Install swagger-codegen fork:
 ### Ruby
 
     sbt 'run-main mojolly.swagger.RubyLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-ruby-client localhost 8080 /1 Backchat'
+
+### Javascript
+
+    sbt 'run-main mojolly.swagger.JavascriptLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-js-client localhost 8080 /1 Backchat'

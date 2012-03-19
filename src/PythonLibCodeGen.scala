@@ -34,14 +34,6 @@ object PythonLibCodeGen extends App {
     override def getMethodName(endpoint: String, suggested: String) = applyMethodNamingPolicy(suggested)
   }
 
-  class PythonCodeGenConfig(config: CodeGenConfig) {
-    def resourceClassLocation = new File(classOutputDir, "api")
-    def modelClassLocation = new File(classOutputDir, "model")
-    def classOutputDir = new File(config.libraryHome, config.packageName)
-  }
-
-  implicit def config2python(config: CodeGenConfig) = new PythonCodeGenConfig(config)
-
   val logger = org.slf4j.LoggerFactory.getLogger(classOf[PythonLibCodeGen])
 }
 

@@ -1,10 +1,17 @@
 package mojolly.swagger
 
+import java.io.File
+
 case class CodeGenConfig(apiServerURL: String,
                          apiKey: String,
                          packageName: String,
                          libraryHome: String,
-                         apiHostConfig: ApiHostConfig)
+                         apiHostConfig: ApiHostConfig) {
+
+  def resourceClassLocation = new File(classOutputDir, "api")
+  def modelClassLocation = new File(classOutputDir, "model")
+  def classOutputDir = new File(libraryHome, packageName)
+}
 
 case class ApiHostConfig(authToken: String, host: String, port: Int = 80, path: String = "")
 
