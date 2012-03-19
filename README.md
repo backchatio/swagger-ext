@@ -14,16 +14,16 @@ Install swagger-codegen fork:
 
 ### Scala
 
-    sbt 'run-main mojolly.swagger.ScalaLibCodeGen http://localhost:8080/1/swagger/ apikey backchat.client ../backchat-scala-client localhost 8080 /1 Backchat'
+    sbt 'run-main mojolly.swagger.ScalaLibCodeGen http://localhost:8080/1/swagger/ apikey backchat.client ../backchat-scala-client api.backchat.io 80 /1 Backchat'
 
 ### Python
 
-    sbt 'run-main mojolly.swagger.PythonLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-python-client localhost 8080 /1 Backchat'
+    sbt 'run-main mojolly.swagger.PythonLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-python-client api.backchat.io 80 /1 Backchat'
 
 ### Ruby
 
-    sbt 'run-main mojolly.swagger.RubyLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-ruby-client localhost 8080 /1 Backchat'
+    sbt 'run-main mojolly.swagger.RubyLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-ruby-client api.backchat.io 80 /1 Backchat'
 
 ### Javascript
 
-    sbt 'run-main mojolly.swagger.JavascriptLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-js-client localhost 8080 /1 Backchat'
+    sbt 'run-main mojolly.swagger.JavascriptLibCodeGen http://localhost:8080/1/swagger/ apikey backchat/client ../backchat-js-client api.backchat.io 80 /1 Backchat'
