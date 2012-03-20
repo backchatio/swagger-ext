@@ -22,8 +22,8 @@ $methods:{ method |
     $endif$"""
 
         return self.client.submit("$method.methodType$", "$method.resourcePath$",
-            query_params = [$method.queryParameters:{ arg | ('$arg.name$', $arg.name;format="underscore"$) }; separator=", "$],
+            query_params = [$method.queryParameters:{ arg | ('$arg.name$', $arg.name$) }; separator=", "$],
             header_params = {},
-            path_params = {$method.pathParameters:{ arg | "$arg.name$" : $arg.name;format="camelcase"$ }; separator=", "$})
+            path_params = {$method.pathParameters:{ arg | "$arg.name$" : $arg.name$ }; separator=", "$})
 
 }$

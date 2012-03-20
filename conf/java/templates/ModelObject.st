@@ -11,12 +11,24 @@ import $import$;
  *
  */
 public class $className$ {
+
 $fields:{ field |
-$if(field.fieldDefinition.hasListResponse)$
-  $field.fieldDefinition.returnType$ $field.fieldDefinition.name;format="camelcase"$;$elseif(field.fieldDefinition.hasMapResponse)$
-  $field.fieldDefinition.returnType$ $field.fieldDefinition.name;format="camelcase"$;
-$else$
-  $field.fieldDefinition.returnType$ $field.fieldDefinition.name;format="camelcase"$;
-$endif$
+    /**
+     * $field.description$
+     */
+	 private $field.fieldDefinition.returnType$ $field.fieldDefinition.name$ $field.fieldDefinition.initialization$;$\r$};separator="\n"$
+
+$fields:{ field |
+	/**
+	 * $field.description$
+	 * $if(field.required)$@Required$endif$
+	 */
+	 public $field.fieldDefinition.returnType$ get$field.fieldDefinition.NameForMethod$() {
+	 	return $field.fieldDefinition.name$;
+	 }
+
+	 public void set$field.fieldDefinition.NameForMethod$($field.fieldDefinition.returnType$  $field.fieldDefinition.name$) {
+	 	this.$field.fieldDefinition.name$ = $field.fieldDefinition.name$;
+	 }
 };separator="\n"$
 }

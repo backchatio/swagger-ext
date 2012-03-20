@@ -6,6 +6,7 @@ import $import$;
 
 import mojolly.swagger.runtime.*;
 import $modelPackageName$.*;
+import java.util.*;
 
 /**
  *
@@ -14,4 +15,27 @@ import $modelPackageName$.*;
  */
 public class $resource$ extends Api {
 
+  public $resource$(Client client) {
+    super(client);
+  }
+
+$methods:{ method |
+  public $method.returnValue$ $method.name$($method.name;format="capital,camelize"$Params params) {
+  $if(method.hasResponseValue)$
+    return submit("$method.methodType$", "$method.resourcePath$", params);
+  $else$
+    submit("$method.methodType$", "$method.resourcePath$", params);
+  $endif$
+  }
+
+  public $method.returnValue$ $method.name$($method.argumentDefinitions; separator=", "$) {
+    $method.name;format="capital"$Params params = new $method.name;format="capital"$Params();
+    $method.arguments:{arg|params.set$arg.name;format="camelcase,capital"$($arg.name;format="camelcase"$);};separator="\n"$
+  $if(method.hasResponseValue)$
+    return $method.name$(params);
+  $else$
+    $method.name$(params);
+  $endif$
+  }
+};separator="\n"$
 }
