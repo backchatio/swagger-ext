@@ -46,6 +46,7 @@ class JavaLibCodeGen(config: CodeGenConfig) extends JavaLibraryCodeGenerator("ja
     FileUtil clearFolder (langConfig.getModelClassLocation())
     FileUtil clearFolder (langConfig.getResourceClassLocation())
     FileUtil.copyDirectory(new File(langConfig.getStructureLocation()), new File(config.libraryHome, "/src/main/java/"))
+    FileUtil.copyDirectory(new File("conf/jvm/structure"), new File(config.libraryHome, "/src/main/scala/"))
 
     langConfig
   }

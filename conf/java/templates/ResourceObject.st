@@ -22,9 +22,9 @@ public class $resource$ extends Api {
 $methods:{ method |
   public $method.returnValue$ $method.name$($method.name;format="capital,camelize"$Params params) {
   $if(method.hasResponseValue)$
-    return submit("$method.methodType$", "$method.resourcePath$", params);
+    return submit("$method.methodType$", "$method.resourcePath$", params, $if(method.returnValueList)$List.class$else$$method.returnValue$.class$endif$);
   $else$
-    submit("$method.methodType$", "$method.resourcePath$", params);
+    submit("$method.methodType$", "$method.resourcePath$", params, $if(method.returnValueList)$List.class$else$$method.returnValue$.class$endif$);
   $endif$
   }
 

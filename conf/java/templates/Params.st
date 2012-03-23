@@ -36,19 +36,19 @@ $params.args:{ arg |
 
   public List<Param> getHeaderParams() {
     List<Param> params = new ArrayList();
-    $params.headerArgs:{arg|params.add(new Param("$arg.fieldDefinition.name;format="underscore"$", $arg.fieldDefinition.name$.toString()));};separator="\n"$
+    $params.headerArgs:{arg|params.addAll(createParams("$arg.fieldDefinition.name;format="underscore"$", $arg.fieldDefinition.name$));};separator="\n"$
     return params;
   }
 
   public List<Param> getQueryParams() {
     List<Param> params = new ArrayList();
-    $params.queryArgs:{arg|params.add(new Param("$arg.fieldDefinition.name;format="underscore"$", $arg.fieldDefinition.name$.toString()));};separator="\n"$
+    $params.queryArgs:{arg|params.addAll(createParams("$arg.fieldDefinition.name;format="underscore"$", $arg.fieldDefinition.name$));};separator="\n"$
     return params;
   }
 
   public List<Param> getPathParams() {
     List<Param> params = new ArrayList();
-    $params.pathArgs:{arg|params.add(new Param("$arg.fieldDefinition.name;format="underscore"$", $arg.fieldDefinition.name$.toString()));};separator="\n"$
+    $params.pathArgs:{arg|params.addAll(createParams("$arg.fieldDefinition.name;format="underscore"$", $arg.fieldDefinition.name$));};separator="\n"$
     return params;
   }
 }
