@@ -1,1 +1,0 @@
-compatible_version = "$apiVersion$"
